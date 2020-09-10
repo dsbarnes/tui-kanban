@@ -1,52 +1,97 @@
-/*
- * The Smart Goal Kanban!
- *
- * Create a kanban board in the terminal with 3-5 lanes.
- * A menu at the top to create a new ticket.
- * When a ticket is selected we can edit the name, text, priority, due date,
- * whatever we'd like bout the ticket
- * Include a menue screen
- * 
- * Learn by doing!
- */
 use std::io;
-
 use termion::raw::IntoRawMode;
-
 use tui::Terminal;
 use tui::backend::TermionBackend;
-use tui::text::Spans;
-use tui::widgets::{Block, Borders, Tabs};
-use tui::style::{Style, Color};
-use tui::layout::{Layout, Direction, Rect};
+use tui::widgets::{Widget, Block, Borders};
+use tui::layout::{Layout, Constraint, Direction};
 
-fn main() {
-    // Initial clap options to load config
-    // 'select goal' or 'add new goal' screen
-    // Once selected it's a kanban!
-    let stdout = io::stdout().into_raw_mode().unwrap();
+/*
+ * Generally, this is what I've learned,
+ *
+ * the terminal is the outermost 'frame'
+ * this frame is divides into chunks.
+ * those chunks can be used to render more frames, which again, chunks
+ * the chunks are places to put widgets.
+ * */
+
+fn main() -> Result<(), io::Error> {
+    // Creates the terminal - the thing we can draw on
+    let stdout = io::stdout().into_raw_mode()?;
     let backend = TermionBackend::new(stdout);
-    let mut terminal = Terminal::new(backend).unwrap();
+    let mut terminal = Terminal::new(backend)?;
 
-    let tabs = ["S.M.A.R.T Goals", "Kanban"]
-        .iter().cloned().map(Spans::from).collect();
+    // f is a tui Frame
+    terminal.clear()?;
+    terminal.draw(|f| {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(1)
+            .constraints([
+                Constraint::Percentage(20),
+                Constraint::Percentage(40),
+                Constraint::Percentage(40),
+            ].as_ref())
+            .split(f.size());
 
-    let block = Tabs::new(tabs)
-        .block(Block::default().title("Tabs").borders(Borders::ALL))
-        .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().fg(Color::Yellow))
-        .divider("|");
+        let smaller_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(80),
+                Constraint::Percentage(20),
+            ].as_ref())
+            .split(chunks[0]);
 
-    let chunk = Layout::default()
-        .direction(Direction::Horizontal)
-        .split(Rect {
-            x: 2,
-            y: 2,
-            width: 10,
-            height: 10,
-        });
+        let smaller_chunks1 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(50),
+                Constraint::Percentage(50),
+            ].as_ref())
+            .split(chunks[1]);
 
-    terminal.draw(|t|{
-        t.render_widget(block, chunk[0])
-    }).unwrap();
+        let smaller_chunks2 = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(50),
+                Constraint::Percentage(50),
+            ].as_ref())
+            .split(chunks[2]);
+
+        let block0 = Block::default()
+            .title("block0")
+            .borders(Borders::ALL);
+
+        let block1 = Block::default()
+            .title("block1")
+            .borders(Borders::ALL);
+
+
+        let block3 = Block::default()
+            .title("block3")
+            .borders(Borders::ALL);
+
+        let block4 = Block::default()
+            .title("block4")
+            .borders(Borders::ALL);
+
+
+        let block5 = Block::default()
+            .title("block5")
+            .borders(Borders::ALL);
+
+        let block6 = Block::default()
+            .title("block6")
+            .borders(Borders::ALL);
+
+
+
+        f.render_widget(block0, smaller_chunks[0]);
+        f.render_widget(block1, smaller_chunks[1]);
+
+        f.render_widget(block3, smaller_chunks1[0]);
+        f.render_widget(block4, smaller_chunks1[1]);
+
+        f.render_widget(block5, smaller_chunks2[0]);
+        f.render_widget(block6, smaller_chunks2[1]);
+    })
 }
