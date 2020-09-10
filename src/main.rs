@@ -1,8 +1,11 @@
 use std::io;
 use termion::raw::IntoRawMode;
 use tui::Terminal;
+use tui::symbols::DOT;
+use tui::text::Spans;
+use tui::style::{Style, Color};
 use tui::backend::TermionBackend;
-use tui::widgets::{Widget, Block, Borders};
+use tui::widgets::{Widget, Block, Borders, Tabs};
 use tui::layout::{Layout, Constraint, Direction};
 
 /*
@@ -12,6 +15,9 @@ use tui::layout::{Layout, Constraint, Direction};
  * this frame is divides into chunks.
  * those chunks can be used to render more frames, which again, chunks
  * the chunks are places to put widgets.
+ * 
+ * Looks like to their utils are somewhat necessary for all this
+ * We want to use Termion to take input
  *
  * TODO:
  * make each section that is drawn it's own function
@@ -68,6 +74,23 @@ fn main() -> Result<(), io::Error> {
             ].as_ref())
             .split(chunks[1]);
 
+        let tabs = ["one", "two", "three"]
+            // All this is from the documentation
+            .iter()
+            .cloned()
+            .map(Spans::from)
+            .collect();
+
+        let tabs_widget = Tabs::new(tabs)
+            .block(
+                Block::default()
+                    .title("tabs")
+                    .borders(Borders::ALL)
+            )
+            .style(Style::default().fg(Color::White))
+            .highlight_style(Style::default().fg(Color::Yellow))
+            .divider(DOT);
+
         let block0 = Block::default()
             .title("block0")
             .borders(Borders::ALL);
@@ -75,7 +98,6 @@ fn main() -> Result<(), io::Error> {
         let block1 = Block::default()
             .title("block1")
             .borders(Borders::ALL);
-
 
         let block3 = Block::default()
             .title("block3")
@@ -103,7 +125,7 @@ fn main() -> Result<(), io::Error> {
 
 
 
-        f.render_widget(block0, smaller_chunks[0]);
+        f.render_widget(tabs_widget, smaller_chunks[0]);
         f.render_widget(block1, smaller_chunks[1]);
 
         f.render_widget(block5, smaller_chunks2[0]);
