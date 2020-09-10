@@ -12,6 +12,15 @@ use tui::layout::{Layout, Constraint, Direction};
  * this frame is divides into chunks.
  * those chunks can be used to render more frames, which again, chunks
  * the chunks are places to put widgets.
+ *
+ * TODO:
+ * make each section that is drawn it's own function
+ * Input
+ * Tabs, and changing between them
+ * learn to redraw the screen
+ * move things from one section to another
+ * change what a box says as you select other boxes
+ *
  * */
 
 fn main() -> Result<(), io::Error> {
@@ -27,27 +36,29 @@ fn main() -> Result<(), io::Error> {
             .direction(Direction::Vertical)
             .margin(1)
             .constraints([
-                Constraint::Percentage(20),
-                Constraint::Percentage(40),
-                Constraint::Percentage(40),
+                Constraint::Percentage(15),
+                Constraint::Percentage(35),
+                Constraint::Percentage(50),
             ].as_ref())
             .split(f.size());
 
         let smaller_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage(80),
                 Constraint::Percentage(20),
+                Constraint::Percentage(80),
             ].as_ref())
             .split(chunks[0]);
 
         let smaller_chunks1 = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage(50),
-                Constraint::Percentage(50),
+                Constraint::Percentage(25),
+                Constraint::Percentage(25),
+                Constraint::Percentage(25),
+                Constraint::Percentage(25),
             ].as_ref())
-            .split(chunks[1]);
+            .split(chunks[2]);
 
         let smaller_chunks2 = Layout::default()
             .direction(Direction::Horizontal)
@@ -55,7 +66,7 @@ fn main() -> Result<(), io::Error> {
                 Constraint::Percentage(50),
                 Constraint::Percentage(50),
             ].as_ref())
-            .split(chunks[2]);
+            .split(chunks[1]);
 
         let block0 = Block::default()
             .title("block0")
@@ -74,6 +85,13 @@ fn main() -> Result<(), io::Error> {
             .title("block4")
             .borders(Borders::ALL);
 
+        let block9 = Block::default()
+            .title("block4")
+            .borders(Borders::ALL);
+
+        let block8 = Block::default()
+            .title("block4")
+            .borders(Borders::ALL);
 
         let block5 = Block::default()
             .title("block5")
@@ -88,10 +106,12 @@ fn main() -> Result<(), io::Error> {
         f.render_widget(block0, smaller_chunks[0]);
         f.render_widget(block1, smaller_chunks[1]);
 
-        f.render_widget(block3, smaller_chunks1[0]);
-        f.render_widget(block4, smaller_chunks1[1]);
-
         f.render_widget(block5, smaller_chunks2[0]);
         f.render_widget(block6, smaller_chunks2[1]);
+
+        f.render_widget(block3, smaller_chunks1[0]);
+        f.render_widget(block4, smaller_chunks1[1]);
+        f.render_widget(block9, smaller_chunks1[2]);
+        f.render_widget(block8, smaller_chunks1[3]);
     })
 }
