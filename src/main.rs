@@ -1,5 +1,8 @@
 use std::io;
+
 use termion::raw::IntoRawMode;
+use termion::screen::AlternateScreen;
+
 use tui::Terminal;
 use tui::symbols::DOT;
 use tui::text::Spans;
@@ -32,12 +35,14 @@ use tui::layout::{Layout, Constraint, Direction};
 fn main() -> Result<(), io::Error> {
     // Creates the terminal - the thing we can draw on
     let stdout = io::stdout().into_raw_mode()?;
+    let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
     // f is a tui Frame
     terminal.clear()?;
     terminal.draw(|f| {
+        // Master layout
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
@@ -48,6 +53,7 @@ fn main() -> Result<(), io::Error> {
             ].as_ref())
             .split(f.size());
 
+        // Sub layout
         let smaller_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
