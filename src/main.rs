@@ -86,11 +86,6 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
 
     loop {
-        //let chunks;
-        //let help_message;
-        //let (title, description) = match app.input_mode {}
-        //let cards;
-
         /*
          * The input box is a 'paragraph' widget
          * we set the value of the paragraph to the value of some string
@@ -106,56 +101,89 @@ fn main() -> Result<(), io::Error> {
         // Create a small help message
         // Create an empty string that represents out input
         
-        // Display the cursor
-        match app.input_mode {
-            // The cursor is hidden by default on the alt screen
-            // so we don't actually need to do anything for the
-            // case of Normal mode
-            InputMode::Normal => {},
-            InputMode::Title |
-            InputMode::Description => {
-                // Show the cursor
-                f.set_cursot()
-            },
-        } 
 
         // Draw the layout
         terminal.draw(|f| {
-            // Put everything else in here
             // to the point where I need the small help menu
             // the input
             // the lanes w/ lists in them
             // and the description box
             // drawn on the screen.
-        })
+            
+            let main_layout = Display::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Percentage(5),
+                    Constraint::Percentage(15),
+                    Constraint::Percentage(50),
+                    Constraint::Percentage(30),
+                ].as_ref())
+                .split(f.size())
+            // Create the help menu widget
+            // Create the input widget
 
-        // Handle input
-        if let Event::Input(input) = events.next().unwrap() {
-            match app.input_mode {
-                InputMode::Normal => match input {
-                    Key::Char('t') => {
-                        print!("Do stuff with the t key\n\r");
-                    },
-                    Key::Char('d') => {
-                        print!("Do stuff with the d key\n\r");
-                    },
-                    Key::Char('q') => {
-                        break;
-                    },
-                    _ => {},
+            let help_text = match app.input_mode {
+                InputMode::Normal => {
+                    vec![
+                        Span::raw("Press `t` to enter TITLE mode or `d` to enter DESCRIPTION mode, q to break"),
+                    ];
                 },
-                InputMode::Title => match input {
-                    Key::Char('q') => {
-                        break;
-                    },
-                    _ => {},
-                },
+                InputMode::Title |
                 InputMode::Description => {
-                    break;
+                    vec![
+                        Span::raw("Press ESC to enter NORMAL mode"),
+                    ];
                 },
+            };
+
+            let mut help_message = Text::from(Spans::from(help_text));
+            let help_menu = Paragraph::new(help_message);
+            f.render_widget(help_menu, main_layout[0]);
+
+            // Display the cursor
+            match app.input_mode {
+                // The cursor is hidden by default on the alt screen
+                // so we don't actually need to do anything for the
+                // case of Normal mode
+                InputMode::Normal => {},
+                InputMode::Title |
+                InputMode::Description => {
+                    // Show the cursor
+                },
+            } 
+
+            // Handle input
+            if let Event::Input(input) = events.next().unwrap() {
+                match app.input_mode {
+                    InputMode::Normal => match input {
+                        Key::Char('t') => {
+                            app.input_mode = InputMode::Title;
+                        },
+                        Key::Char('d') => {
+                            app.input_mode = InputMode::Description;
+                        },
+                        Key::Char('q') => {
+                            break;
+                        },
+                        _ => {},
+                    },
+                    InputMode::Title => match input {
+                        Key::Char('q') => {
+                            break;
+                        },
+                        _ => {},
+                    },
+                    InputMode::Description => {
+                        Key::Char('z') => {
+                            break;
+                        },
+                    },
+                }
             }
         }
-    }
+    })
+
 
     // So rust doesn't complain
     Ok(())
