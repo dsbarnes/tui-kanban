@@ -1,6 +1,5 @@
 mod util;
-
-use util::event::*;
+use util::event::{Event, Events};
 
 use std::io;
 
