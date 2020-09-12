@@ -1,11 +1,14 @@
 mod util;
-use util::event::{ Event, Events };
+use util::{
+    event::{ Event, Events },
+    // signal::StatefulList,
+};
 
 use std::{ error::Error, io };
 
 use termion::{
     event::Key,
-    input::MouseTerminal,
+    // input::MouseTerminal,
     raw::IntoRawMode,
     screen::AlternateScreen
 };
@@ -15,13 +18,24 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{ Color, Modifier, Style },
     text::{ Span, Spans, Text },
-    widgets::{ Block, Borders, List, ListItem, Paragraph },
+    widgets::{ Block, Borders, List, ListItem, Paragraph, },
     Frame,
     Terminal,
 };
 
 struct Lane {
     name: String,
+    cards: Vec<Card>,
+}
+
+impl Lane {
+    fn new(name: String, cards: Vec<Card>) -> Self{
+        Lane {
+            name,
+            cards,
+        }
+    }
+
 }
 
 struct Card {
@@ -30,7 +44,17 @@ struct Card {
     priority: u8,
     time: u8,
     // due: timestamp,
-    lane: Lane,
+}
+
+impl Default for Card {
+    fn default() -> Self {
+        Card {
+            title: String::new(),
+            description: String::new(),
+            priority: 0,
+            time: 0,
+        }
+    }
 }
 
 struct Goal {
@@ -115,18 +139,33 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>)
     where
         B: Backend,
 {
+    let lane_names = vec![
+        "TODO",
+        "In Progress",
+        "Finished",
+        "In Review",
+    ];
+    let mut lanes = Vec::new();
+
+    for lane in lane_names {
+        lanes.push( Lane::new(lane.to_string(), Vec::new()) )
+    }
+
     // These should all be lists
     let lane0 = Block::default()
-        .title("Lane 0")
+        .title(lanes[0].name.as_ref())
         .borders(Borders::ALL);
+
     let lane1 = Block::default()
-        .title("Lane 1")
+        .title(lanes[1].name.as_ref())
         .borders(Borders::ALL);
+
     let lane2 = Block::default()
-        .title("Lane 2")
+        .title(lanes[2].name.as_ref())
         .borders(Borders::ALL);
+
     let lane3 = Block::default()
-        .title("Lane 3")
+        .title(lanes[3].name.as_ref())
         .borders(Borders::ALL);
 
     f.render_widget(lane0, chunk[0]);
@@ -196,6 +235,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ].as_ref())
                 .split(main_layout[3]);
 
+            
             draw_help_text(f, main_layout[0], &app);
             draw_input_box(f, main_layout[1], &app);
             draw_lanes(f, card_layout);
