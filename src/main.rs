@@ -82,16 +82,12 @@ fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     
     let help_text = match app.input_mode {
         InputMode::Normal => {
-            vec![
-                Span::raw("Press 'h' for HELP or 'q' to EXIT"),
-            ]
+            vec![ Span::raw("Press 'h' for HELP or 'q' to EXIT"), ]
         },
 
         InputMode::Title |
         InputMode::Description => {
-            vec![
-                Span::raw("Press ESC to enter NORMAL mode"),
-            ]
+            vec![ Span::raw("Press ESC to enter NORMAL mode"), ]
         },
     };
 
@@ -104,17 +100,17 @@ fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     where
         B: Backend,
 {
-    let input_box = Layout::default()
-        .direction(Direction::Horizontal)
-        .margin(1)
-        .constraints([
-            Constraint::Percentage(100),
-        ].as_ref());
-
-    // Chunk here is main_layout[0]
-    // f.render_widget(input_box, chunk)
+    // Create a new paragraph with a value of app.input
+    // See 'handle input'
+    let input_box = Paragraph::new(app.input.as_ref())
+        .block(Block::default()
+            .borders(Borders::ALL)
+        );
+    f.render_widget(input_box, chunk)
 }
 
+fn draw_lanes(){}
+fn draw_description(){}
 
 // Not sure why Box<dyn Error>> instead of just io::Error??
 fn main() -> Result<(), Box<dyn Error>> {
@@ -190,10 +186,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                 },
 
                 InputMode::Title => match input {
-                    Key::Char('\n') => { },
-                    Key::Char(c) => { },
-                    Key::Backspace => { },
-                    Key::Esc => { },
+                    Key::Char('\n') => {
+                        // Push the title to a card
+                    },
+                    Key::Char(c) => {
+                        app.input += c;
+                    },
+                    Key::Backspace => {
+                        app.input.pop();
+                    },
+                    Key::Esc => {
+                        app.input_mode = InputMode::Normal;
+                    },
                     _ => { },
                 },
 
