@@ -114,7 +114,7 @@ fn draw_description(){}
 
 // Not sure why Box<dyn Error>> instead of just io::Error??
 fn main() -> Result<(), Box<dyn Error>> {
-    let app = App::default();
+    let mut app = App::default();
     let events = Events::new();
 
     // The double stdout is what the actual documentation suggests
@@ -163,6 +163,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .split(main_layout[3]);
 
             draw_help_text(f, main_layout[0], &app);
+            draw_input_box(f, main_layout[1], &app);
 
             // Display the cursor if in Title or Description mode
             match app.input_mode {
@@ -182,6 +183,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             match app.input_mode {
                 InputMode::Normal => match input {
                     Key::Char('q') => { break; },
+                    Key::Char('t') => { app.input_mode = InputMode::Title }, 
                     _ => { },
                 },
 
@@ -190,7 +192,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                         // Push the title to a card
                     },
                     Key::Char(c) => {
-                        app.input += c;
+                        // (That should have been more obvs -
+                        // a String is a smart pointer after all
+                        // a Vec of chars, basically
+                        app.input.push(c);
                     },
                     Key::Backspace => {
                         app.input.pop();
