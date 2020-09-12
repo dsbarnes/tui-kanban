@@ -126,7 +126,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     loop {
         // Draw the layout
         terminal.draw(|f| {
-            // Drawn on the screen.
             let main_layout = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
@@ -165,6 +164,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             draw_help_text(f, main_layout[0], &app);
             draw_input_box(f, main_layout[1], &app);
 
+
             // Display the cursor if in Title or Description mode
             match app.input_mode {
                 // The cursor is hidden by default on the alt screen
@@ -174,6 +174,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 InputMode::Title |
                 InputMode::Description => {
                     // Show the cursor
+                    f.set_cursor(
+                        // Put cursor past the end of the input text
+                        main_layout[1].x + app.input.len() as u16 + 1,
+                        // Move one line down, from the border to the input line
+                        main_layout[1].y + 1,
+                    )
                 },
             }
         })?;
@@ -191,18 +197,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Key::Char('\n') => {
                         // Push the title to a card
                     },
-                    Key::Char(c) => {
-                        // (That should have been more obvs -
-                        // a String is a smart pointer after all
-                        // a Vec of chars, basically
-                        app.input.push(c);
-                    },
-                    Key::Backspace => {
-                        app.input.pop();
-                    },
-                    Key::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    },
+                    Key::Char(c) => { app.input.push(c); },
+                    Key::Backspace => { app.input.pop(); },
+                    Key::Esc => { app.input_mode = InputMode::Normal; },
                     _ => { },
                 },
 
@@ -214,6 +211,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    // So rust doesn't complain
     Ok(())
 }
