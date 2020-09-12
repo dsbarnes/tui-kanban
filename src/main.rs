@@ -104,13 +104,48 @@ fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     // See 'handle input'
     let input_box = Paragraph::new(app.input.as_ref())
         .block(Block::default()
+            // Should change based on mode
+            .title("Title/Description")
             .borders(Borders::ALL)
         );
     f.render_widget(input_box, chunk)
 }
 
-fn draw_lanes(){}
-fn draw_description(){}
+fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>)
+    where
+        B: Backend,
+{
+    // These should all be lists
+    let lane0 = Block::default()
+        .title("Lane 0")
+        .borders(Borders::ALL);
+    let lane1 = Block::default()
+        .title("Lane 1")
+        .borders(Borders::ALL);
+    let lane2 = Block::default()
+        .title("Lane 2")
+        .borders(Borders::ALL);
+    let lane3 = Block::default()
+        .title("Lane 3")
+        .borders(Borders::ALL);
+
+    f.render_widget(lane0, chunk[0]);
+    f.render_widget(lane1, chunk[1]);
+    f.render_widget(lane2, chunk[2]);
+    f.render_widget(lane3, chunk[3]);
+}
+
+fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>)
+    where
+        B: Backend,
+{
+    let description = Paragraph::new("This is the card description")
+        .block(Block::default()
+            .borders(Borders::ALL)
+        );
+    f.render_widget(description, chunk[0]);
+    // f.render_widget(something_else, chunk[1]);
+}
 
 // Not sure why Box<dyn Error>> instead of just io::Error??
 fn main() -> Result<(), Box<dyn Error>> {
@@ -163,6 +198,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             draw_help_text(f, main_layout[0], &app);
             draw_input_box(f, main_layout[1], &app);
+            draw_lanes(f, card_layout);
+            draw_description(f, description_layout);
 
 
             // Display the cursor if in Title or Description mode
@@ -173,7 +210,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 InputMode::Normal => {},
                 InputMode::Title |
                 InputMode::Description => {
-                    // Show the cursor
                     f.set_cursor(
                         // Put cursor past the end of the input text
                         main_layout[1].x + app.input.len() as u16 + 1,
