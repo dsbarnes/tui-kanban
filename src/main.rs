@@ -100,6 +100,7 @@ fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
 }
 
 
+// Not sure why Box<dyn Error>> instead of just io::Error??
 fn main() -> Result<(), Box<dyn Error>> {
     let app = App::default();
     let events = Events::new();
@@ -127,21 +128,41 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             draw_help_text(f, main_layout[0], &app);
 
-
             // Display the cursor if in Title or Description mode
             match app.input_mode {
-                    // The cursor is hidden by default on the alt screen
-                    // so we don't actually need to do anything for the
-                    // case of Normal mode
-                    InputMode::Normal => {},
-                    InputMode::Title |
-                    InputMode::Description => {
-                        // Show the cursor
-                    },
-                }
-            })?;
+                // The cursor is hidden by default on the alt screen
+                // so we don't actually need to do anything for the
+                // case of Normal mode
+                InputMode::Normal => {},
+                InputMode::Title |
+                InputMode::Description => {
+                    // Show the cursor
+                },
+            }
+        })?;
 
-        // break;
+        // Handle basic input
+        if let Event::Input(input) = events.next().unwrap() {
+            match app.input_mode {
+                InputMode::Normal => match input {
+                    Key::Char('q') => { break; },
+                    _ => { },
+                },
+
+                InputMode::Title => match input {
+                    Key::Char('\n') => { },
+                    Key::Char(c) => { },
+                    Key::Backspace => { },
+                    Key::Esc => { },
+                    _ => { },
+                },
+
+                InputMode::Description => match input {
+                    Key::Char('i') => { break; },
+                    _ => { },
+                },
+            }
+        }
     }
 
     // So rust doesn't complain
