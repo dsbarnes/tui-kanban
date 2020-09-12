@@ -23,11 +23,27 @@ use tui::{
     Terminal,
 };
 
+struct App {
+    input: String,
+    input_mode: InputMode,
+    lanes: Vec<Lane>,
+    cards: Vec<Card>,
+}
+impl Default for App {
+    fn default() -> App {
+        App {
+            input: String::new(),
+            input_mode: InputMode::Normal,
+            lanes: Vec::new(),
+            cards: Vec::new(),
+        }
+    }
+}
+
 struct Lane {
     name: String,
     cards: Vec<Card>,
 }
-
 impl Lane {
     fn new(name: String, cards: Vec<Card>) -> Self{
         Lane {
@@ -42,26 +58,15 @@ struct Card {
     title: String,
     description: String,
     priority: u8,
-    time: u8,
-    // due: timestamp,
 }
-
 impl Default for Card {
     fn default() -> Self {
         Card {
             title: String::new(),
             description: String::new(),
             priority: 0,
-            time: 0,
         }
     }
-}
-
-struct Goal {
-    title: String,
-    description: String,
-    lanes: Vec<Lane>,
-    cards: Vec<Card>,
 }
 
 enum InputMode {
@@ -70,34 +75,6 @@ enum InputMode {
     Description,
 }
 
-enum ActiveWidget {
-    Tab,
-    Input,
-    Lane,
-    Card,
-}
-
-struct App {
-    input: String,
-    input_mode: InputMode,
-    active_widget: ActiveWidget,
-    goals: Vec<Goal>,
-    lanes: Vec<Lane>,
-    cards: Vec<Card>,
-}
-
-impl Default for App {
-    fn default() -> App {
-        App {
-            input: String::new(),
-            input_mode: InputMode::Normal,
-            active_widget: ActiveWidget::Input,
-            goals: Vec::new(),
-            lanes: Vec::new(),
-            cards: Vec::new(),
-        }
-    }
-}
 
 fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     where
@@ -135,37 +112,25 @@ fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     f.render_widget(input_box, chunk)
 }
 
-fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>)
+fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
     where
         B: Backend,
 {
-    let lane_names = vec![
-        "TODO",
-        "In Progress",
-        "Finished",
-        "In Review",
-    ];
-    let mut lanes = Vec::new();
-
-    for lane in lane_names {
-        lanes.push( Lane::new(lane.to_string(), Vec::new()) )
-    }
-
-    // These should all be lists
+    // Still working this out
     let lane0 = Block::default()
-        .title(lanes[0].name.as_ref())
+        .title(app.lanes[0].name.as_ref())
         .borders(Borders::ALL);
 
     let lane1 = Block::default()
-        .title(lanes[1].name.as_ref())
+        .title(app.lanes[1].name.as_ref())
         .borders(Borders::ALL);
 
     let lane2 = Block::default()
-        .title(lanes[2].name.as_ref())
+        .title(app.lanes[2].name.as_ref())
         .borders(Borders::ALL);
 
     let lane3 = Block::default()
-        .title(lanes[3].name.as_ref())
+        .title(app.lanes[3].name.as_ref())
         .borders(Borders::ALL);
 
     f.render_widget(lane0, chunk[0]);
@@ -174,7 +139,7 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>)
     f.render_widget(lane3, chunk[3]);
 }
 
-fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>)
+fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
     where
         B: Backend,
 {
@@ -191,6 +156,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::default();
     let events = Events::new();
 
+    // Create the Lanes for the Kanban
+    let lane_names = vec![ "TODO", "In Progress", "Finished", "Review", ];
+    for name in lane_names {
+        app.lanes.push(Lane::new(name.to_string(), Vec::new()))
+    }
+
     // The double stdout is what the actual documentation suggests
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
@@ -198,7 +169,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     loop {
-        // Draw the layout
         terminal.draw(|f| {
             let main_layout = Layout::default()
                 .direction(Direction::Vertical)
@@ -235,18 +205,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ].as_ref())
                 .split(main_layout[3]);
 
-            
             draw_help_text(f, main_layout[0], &app);
             draw_input_box(f, main_layout[1], &app);
-            draw_lanes(f, card_layout);
-            draw_description(f, description_layout);
+            draw_lanes(f, card_layout, &app);
+            draw_description(f, description_layout, &app);
 
 
             // Display the cursor if in Title or Description mode
             match app.input_mode {
-                // The cursor is hidden by default on the alt screen
-                // so we don't actually need to do anything for the
-                // case of Normal mode
                 InputMode::Normal => {},
                 InputMode::Title |
                 InputMode::Description => {
@@ -258,14 +224,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                     )
                 },
             }
-        })?;
+        })?; // End closure
 
-        // Handle basic input
+        // Handle input
         if let Event::Input(input) = events.next().unwrap() {
             match app.input_mode {
                 InputMode::Normal => match input {
                     Key::Char('q') => { break; },
                     Key::Char('t') => { app.input_mode = InputMode::Title }, 
+                    // Display the help screen
+                    Key::Char('h') => { },
                     _ => { },
                 },
 
@@ -273,9 +241,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Key::Char('\n') => {
                         // Push the title to a card
                     },
+                    Key::Esc => { app.input_mode = InputMode::Normal; },
                     Key::Char(c) => { app.input.push(c); },
                     Key::Backspace => { app.input.pop(); },
-                    Key::Esc => { app.input_mode = InputMode::Normal; },
+                    Key::Char('\n') => {
+                        // Add a 'Card' to the 'Todo' 'Lane'
+                        let card = Card {
+                            title: app.input.clone(),
+                            description: app.input.clone(),
+                            priority: 0,
+                        };
+
+                        let todo_lane = &app.lanes[0];
+                    }
                     _ => { },
                 },
 
