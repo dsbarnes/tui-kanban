@@ -1,7 +1,7 @@
 mod util;
-use util::event::{Event, Events};
+use util::event::{ Event, Events };
 
-use std::io;
+use std::{ error::Error, io };
 
 use termion::{
     event::Key,
@@ -11,11 +11,12 @@ use termion::{
 };
 
 use tui::{
-    backend::TermionBackend,
-    layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    backend::{ TermionBackend, Backend },
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{ Color, Modifier, Style },
+    text::{ Span, Spans, Text },
+    widgets::{ Block, Borders, List, ListItem, Paragraph },
+    Frame,
     Terminal,
 };
 
@@ -74,8 +75,32 @@ impl Default for App {
     }
 }
 
+fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
+    where
+        B: Backend,
+    {
+    
+    let help_text = match app.input_mode {
+        InputMode::Normal => {
+            vec![
+                Span::raw("Press 'h' for HELP or 'q' to EXIT"),
+            ]
+        },
+        InputMode::Title |
+        InputMode::Description => {
+            vec![
+                Span::raw("Press ESC to enter NORMAL mode"),
+            ]
+        },
+    };
 
-fn main() -> Result<(), io::Error> {
+    let mut help_message = Text::from(Spans::from(help_text));
+    let help_menu = Paragraph::new(help_message);
+    f.render_widget(help_menu, chunk);
+}
+
+
+fn main() -> Result<(), Box<dyn Error>> {
     let app = App::default();
     let events = Events::new();
 
@@ -86,31 +111,10 @@ fn main() -> Result<(), io::Error> {
     let mut terminal = Terminal::new(backend)?;
 
     loop {
-        /*
-         * The input box is a 'paragraph' widget
-         * we set the value of the paragraph to the value of some string
-         * this is what makes it look like we're typing
-         * 
-         * We'll need to position the cursor one space after the String
-         *
-         * learn to change between 'widgets'
-         * and handle the same key in a different way depending on
-         * the 'active' widget
-         */
-
-        // Create a small help message
-        // Create an empty string that represents out input
-        
-
         // Draw the layout
         terminal.draw(|f| {
-            // to the point where I need the small help menu
-            // the input
-            // the lanes w/ lists in them
-            // and the description box
-            // drawn on the screen.
-            
-            let main_layout = Display::default()
+            // Drawn on the screen.
+            let main_layout = Layout::default()
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
@@ -119,71 +123,26 @@ fn main() -> Result<(), io::Error> {
                     Constraint::Percentage(50),
                     Constraint::Percentage(30),
                 ].as_ref())
-                .split(f.size())
-            // Create the help menu widget
-            // Create the input widget
+                .split(f.size());
 
-            let help_text = match app.input_mode {
-                InputMode::Normal => {
-                    vec![
-                        Span::raw("Press `t` to enter TITLE mode or `d` to enter DESCRIPTION mode, q to break"),
-                    ];
-                },
-                InputMode::Title |
-                InputMode::Description => {
-                    vec![
-                        Span::raw("Press ESC to enter NORMAL mode"),
-                    ];
-                },
-            };
+            draw_help_text(f, main_layout[0], &app);
 
-            let mut help_message = Text::from(Spans::from(help_text));
-            let help_menu = Paragraph::new(help_message);
-            f.render_widget(help_menu, main_layout[0]);
 
-            // Display the cursor
+            // Display the cursor if in Title or Description mode
             match app.input_mode {
-                // The cursor is hidden by default on the alt screen
-                // so we don't actually need to do anything for the
-                // case of Normal mode
-                InputMode::Normal => {},
-                InputMode::Title |
-                InputMode::Description => {
-                    // Show the cursor
-                },
-            } 
-
-            // Handle input
-            if let Event::Input(input) = events.next().unwrap() {
-                match app.input_mode {
-                    InputMode::Normal => match input {
-                        Key::Char('t') => {
-                            app.input_mode = InputMode::Title;
-                        },
-                        Key::Char('d') => {
-                            app.input_mode = InputMode::Description;
-                        },
-                        Key::Char('q') => {
-                            break;
-                        },
-                        _ => {},
-                    },
-                    InputMode::Title => match input {
-                        Key::Char('q') => {
-                            break;
-                        },
-                        _ => {},
-                    },
+                    // The cursor is hidden by default on the alt screen
+                    // so we don't actually need to do anything for the
+                    // case of Normal mode
+                    InputMode::Normal => {},
+                    InputMode::Title |
                     InputMode::Description => {
-                        Key::Char('z') => {
-                            break;
-                        },
+                        // Show the cursor
                     },
                 }
-            }
-        }
-    })
+            })?;
 
+        // break;
+    }
 
     // So rust doesn't complain
     Ok(())
