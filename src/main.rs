@@ -78,7 +78,7 @@ impl Default for App {
 fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     where
         B: Backend,
-    {
+{
     
     let help_text = match app.input_mode {
         InputMode::Normal => {
@@ -86,6 +86,7 @@ fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
                 Span::raw("Press 'h' for HELP or 'q' to EXIT"),
             ]
         },
+
         InputMode::Title |
         InputMode::Description => {
             vec![
@@ -94,9 +95,24 @@ fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
         },
     };
 
-    let mut help_message = Text::from(Spans::from(help_text));
+    let help_message = Text::from(Spans::from(help_text));
     let help_menu = Paragraph::new(help_message);
     f.render_widget(help_menu, chunk);
+}
+
+fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
+    where
+        B: Backend,
+{
+    let input_box = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(1)
+        .constraints([
+            Constraint::Percentage(100),
+        ].as_ref());
+
+    // Chunk here is main_layout[0]
+    // f.render_widget(input_box, chunk)
 }
 
 
@@ -119,12 +135,36 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
-                    Constraint::Percentage(5),
-                    Constraint::Percentage(15),
+                    // Help text 
+                    Constraint::Percentage(8),
+                    // Search Bar
+                    Constraint::Percentage(12),
+                    // Lanes and Cards
                     Constraint::Percentage(50),
+                    // Description
                     Constraint::Percentage(30),
                 ].as_ref())
                 .split(f.size());
+
+            let card_layout = Layout::default()
+                .direction(Direction::Horizontal)
+                .margin(1)
+                .constraints([
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                ].as_ref())
+                .split(main_layout[2]);
+
+            let description_layout = Layout::default()
+                .direction(Direction::Horizontal)
+                .margin(1)
+                .constraints([
+                    Constraint::Percentage(75),
+                    Constraint::Percentage(25),
+                ].as_ref())
+                .split(main_layout[3]);
 
             draw_help_text(f, main_layout[0], &app);
 
