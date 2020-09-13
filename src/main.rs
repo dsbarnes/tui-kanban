@@ -1,7 +1,7 @@
 mod util;
 use util::{
     event::{ Event, Events },
-    // signal::StatefulList,
+    signal::StatefulList,
 };
 
 use std::{ error::Error, io };
@@ -26,8 +26,8 @@ use tui::{
 struct App {
     input: String,
     input_mode: InputMode,
-    lanes: Vec<Lane>,
-    cards: Vec<Card>,
+    lanes: Vec<StatefulList<Card>>,
+    cards: Vec<Card>
 }
 impl Default for App {
     fn default() -> App {
@@ -38,20 +38,6 @@ impl Default for App {
             cards: Vec::new(),
         }
     }
-}
-
-struct Lane {
-    name: String,
-    cards: Vec<Card>,
-}
-impl Lane {
-    fn new(name: String, cards: Vec<Card>) -> Self{
-        Lane {
-            name,
-            cards,
-        }
-    }
-
 }
 
 struct Card {
@@ -80,7 +66,6 @@ fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     where
         B: Backend,
 {
-    
     let help_text = match app.input_mode {
         InputMode::Normal => {
             vec![ Span::raw("Press 'h' for HELP or 'q' to EXIT"), ]
@@ -112,31 +97,28 @@ fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     f.render_widget(input_box, chunk)
 }
 
-fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
+fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
     where
         B: Backend,
 {
-    // Still working this out
-    let lane0 = Block::default()
-        .title(app.lanes[0].name.as_ref())
-        .borders(Borders::ALL);
+    let todo_cards: &Vec<ListItem> = &mut app.lanes[0].items
+        .iter()
+        .map(|card|{
+            let li = vec![Spans::from(card.title.as_ref())];
+            ListItem::new(li).style(Style::default())
+        })
+        .collect();
 
-    let lane1 = Block::default()
-        .title(app.lanes[1].name.as_ref())
-        .borders(Borders::ALL);
+    let todo_cards = List::new(todo_cards.as_ref())
+            .block(Block::default().borders(Borders::ALL))
+            .highlight_style(Style::default()
+                .add_modifier(Modifier::BOLD),
+            );
 
-    let lane2 = Block::default()
-        .title(app.lanes[2].name.as_ref())
-        .borders(Borders::ALL);
-
-    let lane3 = Block::default()
-        .title(app.lanes[3].name.as_ref())
-        .borders(Borders::ALL);
-
-    f.render_widget(lane0, chunk[0]);
-    f.render_widget(lane1, chunk[1]);
-    f.render_widget(lane2, chunk[2]);
-    f.render_widget(lane3, chunk[3]);
+    f.render_stateful_widget(todo_cards, chunk[0], &mut app.lanes[0].state);
+    // f.render_stateful_widget(in_progress_cards, chunk[1], &mut app.lanes[1].state);
+    // f.render_stateful_widget(finished_cards, chunk[2], &mut app.lanes[2].state);
+    // f.render_stateful_widget(review_cards, chunk[3], &mut app.lanes[3].state);
 }
 
 fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
@@ -148,19 +130,18 @@ fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
             .borders(Borders::ALL)
         );
     f.render_widget(description, chunk[0]);
-    // f.render_widget(something_else, chunk[1]);
 }
 
 // Not sure why Box<dyn Error>> instead of just io::Error??
 fn main() -> Result<(), Box<dyn Error>> {
+    // Create the app and default lanes:
     let mut app = App::default();
-    let events = Events::new();
-
-    // Create the Lanes for the Kanban
-    let lane_names = vec![ "TODO", "In Progress", "Finished", "Review", ];
+    let lane_names = vec!["TODO", "In Progress", "Finished", "Review"];
     for name in lane_names {
-        app.lanes.push(Lane::new(name.to_string(), Vec::new()))
+        app.lanes.push(StatefulList::with_items(Vec::new()));
     }
+
+    let events = Events::new();
 
     // The double stdout is what the actual documentation suggests
     let stdout = io::stdout().into_raw_mode()?;
@@ -207,7 +188,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             draw_help_text(f, main_layout[0], &app);
             draw_input_box(f, main_layout[1], &app);
-            draw_lanes(f, card_layout, &app);
+            draw_lanes(f, card_layout, &mut app);
             draw_description(f, description_layout, &app);
 
 
@@ -239,21 +220,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 InputMode::Title => match input {
                     Key::Char('\n') => {
-                        // Push the title to a card
+                        // Add a 'Card' to the 'Todo' 'Lane'
                     },
                     Key::Esc => { app.input_mode = InputMode::Normal; },
                     Key::Char(c) => { app.input.push(c); },
                     Key::Backspace => { app.input.pop(); },
-                    Key::Char('\n') => {
-                        // Add a 'Card' to the 'Todo' 'Lane'
-                        let card = Card {
-                            title: app.input.clone(),
-                            description: app.input.clone(),
-                            priority: 0,
-                        };
-
-                        let todo_lane = &app.lanes[0];
-                    }
                     _ => { },
                 },
 
