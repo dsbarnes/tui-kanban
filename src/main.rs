@@ -112,46 +112,65 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
     where
         B: Backend,
 {
-    let todo_lane = app.lanes[0].items.clone();
-    let todo_cards: Vec<ListItem> = todo_lane
-        .iter()
-        .map(|card|{
-            // Push each card title to the list
-            // this does not do anything with the description
-            let li = vec![Spans::from(card.title.as_ref())];
-            ListItem::new(li).style( Style::default())
-        })
-        .collect();
+    for index in 0..app.lanes.len() {
+        let current_lane = app.lanes[index].items.clone();
+        let current_cards: Vec<ListItem> = current_lane
+            .iter()
+            .map(|card|{
+                let li = vec![Spans::from(card.title.as_ref())];
+                ListItem::new(li).style( Style::default())
+            })
+            .collect();
 
-    let todo_cards = List::new(todo_cards.as_ref())
-            .block(Block::default().borders(Borders::ALL)
-                .title("Todo")
-            )
-            .highlight_style(Style::default()
-                .bg(Color::DarkGray)
-                .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol("> ");
+        let current_cards = List::new(current_cards.as_ref())
+                .block(Block::default().borders(Borders::ALL)
+                    .title("Todo")
+                )
+                .highlight_style(Style::default()
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
+                )
+                .highlight_symbol("> ");
 
-    f.render_stateful_widget(todo_cards, chunk[0], &mut app.lanes[0].state);
+    f.render_stateful_widget(current_cards, chunk[index], &mut app.lanes[index].state);
+    }
+
+    // let todo_lane = app.lanes[0].items.clone();
+    // let todo_cards: Vec<ListItem> = todo_lane
+    //     .iter()
+    //     .map(|card|{
+    //         // Push each card title to the list
+    //         // this does not do anything with the description
+    //         // Do I need to do anything with the description here?
+    //         let li = vec![Spans::from(card.title.as_ref())];
+    //         ListItem::new(li).style( Style::default())
+    //     })
+    //     .collect();
+
+    // let todo_cards = List::new(todo_cards.as_ref())
+    //         .block(Block::default().borders(Borders::ALL)
+    //             .title("Todo")
+    //         )
+    //         .highlight_style(Style::default()
+    //             .bg(Color::DarkGray)
+    //             .add_modifier(Modifier::BOLD),
+    //         )
+    //         .highlight_symbol("> ");
+
+    // f.render_stateful_widget(todo_cards, chunk[0], &mut app.lanes[0].state);
     // f.render_stateful_widget(in_progress_cards, chunk[1], &mut app.lanes[1].state);
     // f.render_stateful_widget(finished_cards, chunk[2], &mut app.lanes[2].state);
     // f.render_stateful_widget(review_cards, chunk[3], &mut app.lanes[3].state);
 }
 
-fn draw_description<B>(f: &mut Frame<B>, lane: usize, chunk: Vec<Rect>, app: &App)
+fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
     where
         B: Backend,
 {
-    let index_current_card = app.lanes[lane].state.selected().unwrap();
-    let current_card = app.lanes[lane].items[index_current_card];
-
-    let description = Paragraph::new(current_card.description.as_str())
+    let description = Paragraph::new("Description dummy data")
         .block(Block::default()
             .borders(Borders::ALL)
         );
-
-    
     f.render_widget(description, chunk[0]);
 }
 
