@@ -23,6 +23,7 @@ use tui::{
     Terminal,
 };
 
+#[derive(Clone)]
 struct App {
     input: String,
     input_mode: InputMode,
@@ -40,9 +41,11 @@ impl Default for App {
     }
 }
 
+#[derive(Clone)]
 struct Card {
     title: String,
     description: String,
+    lane: u8,
     priority: u8,
 }
 impl Default for Card {
@@ -50,11 +53,13 @@ impl Default for Card {
         Card {
             title: String::new(),
             description: String::new(),
+            lane: 0,
             priority: 0,
         }
     }
 }
 
+#[derive(Clone)]
 enum InputMode {
     Normal,
     Title,
@@ -101,9 +106,12 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
     where
         B: Backend,
 {
-    let todo_cards: &Vec<ListItem> = &mut app.lanes[0].items
+    let todo_lane = app.lanes[0].items.clone();
+    let todo_cards: Vec<ListItem> = todo_lane
         .iter()
         .map(|card|{
+            // Push each card title to the list
+            // this does not do anything with the description
             let li = vec![Spans::from(card.title.as_ref())];
             ListItem::new(li).style(Style::default())
         })
@@ -136,6 +144,8 @@ fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
 fn main() -> Result<(), Box<dyn Error>> {
     // Create the app and default lanes:
     let mut app = App::default();
+
+    // Damnit
     let lane_names = vec!["TODO", "In Progress", "Finished", "Review"];
     for name in lane_names {
         app.lanes.push(StatefulList::with_items(Vec::new()));
@@ -191,7 +201,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             draw_lanes(f, card_layout, &mut app);
             draw_description(f, description_layout, &app);
 
-
             // Display the cursor if in Title or Description mode
             match app.input_mode {
                 InputMode::Normal => {},
@@ -220,7 +229,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 InputMode::Title => match input {
                     Key::Char('\n') => {
-                        // Add a 'Card' to the 'Todo' 'Lane'
+                        // Pressing enter in Title mode will switch to
+                        // Description mode, unless app.input.len() < 7
+                        if app.input.len() > 6 {
+                            // Create the card
+                            let new_card = Card {
+                                title: String::from(&app.input),
+                                description: String::new(),
+                                lane: 0,
+                                priority: 0,
+                            };
+                            app.lanes[0].items.push(new_card);
+                            app.input_mode = InputMode::Description;
+                        }
                     },
                     Key::Esc => { app.input_mode = InputMode::Normal; },
                     Key::Char(c) => { app.input.push(c); },
@@ -229,7 +250,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 },
 
                 InputMode::Description => match input {
-                    Key::Char('i') => { break; },
+                    Key::Esc => { app.input_mode = InputMode::Normal; },
+                    Key::Char(c) => { },
+                    Key::Backspace => { break; },
                     _ => { },
                 },
             }

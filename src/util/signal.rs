@@ -77,6 +77,7 @@ impl<'a> TabsState<'a> {
     }
 }
 
+#[derive(Clone)]
 pub struct StatefulList<T> {
     pub state: ListState,
     pub items: Vec<T>,
