@@ -28,7 +28,7 @@ struct App {
     input: String,
     input_mode: InputMode,
     lanes: Vec<StatefulList<Card>>,
-    cards: Vec<Card>
+    cards: Vec<Card>,
 }
 impl Default for App {
     fn default() -> App {
@@ -226,8 +226,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let Event::Input(input) = events.next().unwrap() {
             match app.input_mode {
                 InputMode::Normal => match input {
+                    Key::Char('\n') => {
+                        // Select the current card
+                        // for editing title / description
+                    },
+
                     Key::Char('q') => { break; },
                     Key::Char('t') => { app.input_mode = InputMode::Title }, 
+                    Key::Char('d') => { app.input_mode = InputMode::Description },
+
+                    Key::Up => {},
+                    Key::Down => {},
+                    Key::Left => {},
+                    Key::Right => {},
+
                     // Display the help screen
                     Key::Char('h') => { },
                     _ => { },
