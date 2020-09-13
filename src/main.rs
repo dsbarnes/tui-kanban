@@ -16,7 +16,7 @@ use termion::{
 use tui::{
     backend::{ TermionBackend, Backend },
     layout::{Constraint, Direction, Layout, Rect},
-    style::{ Color, Modifier, Style },
+    style::{ Modifier, Style },
     text::{ Span, Spans, Text },
     widgets::{ Block, Borders, List, ListItem, Paragraph, },
     Frame,
@@ -93,10 +93,16 @@ fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
 {
     // Create a new paragraph with a value of app.input
     // See 'handle input'
+    let title = match app.input_mode {
+        InputMode::Normal => { "Input" },
+        InputMode::Title => { "Title" },
+        InputMode::Description => { "Description" },
+    };
+
     let input_box = Paragraph::new(app.input.as_ref())
         .block(Block::default()
             // Should change based on mode
-            .title("Title/Description")
+            .title(title)
             .borders(Borders::ALL)
         );
     f.render_widget(input_box, chunk)
@@ -145,9 +151,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create the app and default lanes:
     let mut app = App::default();
 
-    // Damnit
+    // Creates the lanes, but this is a silly way off doing it.
     let lane_names = vec!["TODO", "In Progress", "Finished", "Review"];
-    for name in lane_names {
+    for _ in lane_names {
         app.lanes.push(StatefulList::with_items(Vec::new()));
     }
 
@@ -240,6 +246,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 priority: 0,
                             };
                             app.lanes[0].items.push(new_card);
+                            app.input = "".to_string();
                             app.input_mode = InputMode::Description;
                         }
                     },
@@ -250,9 +257,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                 },
 
                 InputMode::Description => match input {
+                    Key::Char('\n') => {
+                        let mut card = app.lanes[0].items.pop().unwrap();
+                        card.description = String::from(&app.input);
+                        app.lanes[0].items.push(card);
+                    },
                     Key::Esc => { app.input_mode = InputMode::Normal; },
-                    Key::Char(c) => { },
-                    Key::Backspace => { break; },
+                    Key::Char(c) => { app.input.push(c); },
+                    Key::Backspace => { app.input.pop(); },
                     _ => { },
                 },
             }
