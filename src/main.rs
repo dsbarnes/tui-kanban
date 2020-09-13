@@ -16,7 +16,7 @@ use termion::{
 use tui::{
     backend::{ TermionBackend, Backend },
     layout::{Constraint, Direction, Layout, Rect},
-    style::{ Modifier, Style },
+    style::{ Color, Modifier, Style },
     text::{ Span, Spans, Text },
     widgets::{ Block, Borders, List, ListItem, Paragraph, },
     Frame,
@@ -94,7 +94,7 @@ fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     // Create a new paragraph with a value of app.input
     // See 'handle input'
     let title = match app.input_mode {
-        InputMode::Normal => { "Input" },
+        InputMode::Normal => { "Normal" },
         InputMode::Title => { "Title" },
         InputMode::Description => { "Description" },
     };
@@ -119,15 +119,19 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
             // Push each card title to the list
             // this does not do anything with the description
             let li = vec![Spans::from(card.title.as_ref())];
-            ListItem::new(li).style(Style::default())
+            ListItem::new(li).style( Style::default())
         })
         .collect();
 
     let todo_cards = List::new(todo_cards.as_ref())
-            .block(Block::default().borders(Borders::ALL))
+            .block(Block::default().borders(Borders::ALL)
+                .title("Todo")
+            )
             .highlight_style(Style::default()
+                .bg(Color::DarkGray)
                 .add_modifier(Modifier::BOLD),
-            );
+            )
+            .highlight_symbol("> ");
 
     f.render_stateful_widget(todo_cards, chunk[0], &mut app.lanes[0].state);
     // f.render_stateful_widget(in_progress_cards, chunk[1], &mut app.lanes[1].state);
@@ -135,14 +139,19 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
     // f.render_stateful_widget(review_cards, chunk[3], &mut app.lanes[3].state);
 }
 
-fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
+fn draw_description<B>(f: &mut Frame<B>, lane: usize, chunk: Vec<Rect>, app: &App)
     where
         B: Backend,
 {
-    let description = Paragraph::new("This is the card description")
+    let index_current_card = app.lanes[lane].state.selected().unwrap();
+    let current_card = app.lanes[lane].items[index_current_card];
+
+    let description = Paragraph::new(current_card.description.as_str())
         .block(Block::default()
             .borders(Borders::ALL)
         );
+
+    
     f.render_widget(description, chunk[0]);
 }
 
@@ -238,7 +247,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Key::Up => {},
                     Key::Down => {},
                     Key::Left => {},
-                    Key::Right => {},
+                    Key::Right => {
+                        let lane = 0;
+                        app.lanes[lane].next();
+                    },
 
                     // Display the help screen
                     Key::Char('h') => { },
