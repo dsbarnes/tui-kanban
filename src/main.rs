@@ -114,6 +114,14 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
 {
     for index in 0..app.lanes.len() {
         let current_lane = app.lanes[index].items.clone();
+        let title = match index {
+            0 => { "Todo" },
+            1 => { "In Progress" },
+            2 => { "Finished" },
+            3 => { "In review" },
+            _ => { "How'd you get here?" },
+        };
+
         let current_cards: Vec<ListItem> = current_lane
             .iter()
             .map(|card|{
@@ -124,7 +132,7 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
 
         let current_cards = List::new(current_cards.as_ref())
                 .block(Block::default().borders(Borders::ALL)
-                    .title("Todo")
+                    .title(title)
                 )
                 .highlight_style(Style::default()
                     .bg(Color::DarkGray)
@@ -134,33 +142,6 @@ fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
 
     f.render_stateful_widget(current_cards, chunk[index], &mut app.lanes[index].state);
     }
-
-    // let todo_lane = app.lanes[0].items.clone();
-    // let todo_cards: Vec<ListItem> = todo_lane
-    //     .iter()
-    //     .map(|card|{
-    //         // Push each card title to the list
-    //         // this does not do anything with the description
-    //         // Do I need to do anything with the description here?
-    //         let li = vec![Spans::from(card.title.as_ref())];
-    //         ListItem::new(li).style( Style::default())
-    //     })
-    //     .collect();
-
-    // let todo_cards = List::new(todo_cards.as_ref())
-    //         .block(Block::default().borders(Borders::ALL)
-    //             .title("Todo")
-    //         )
-    //         .highlight_style(Style::default()
-    //             .bg(Color::DarkGray)
-    //             .add_modifier(Modifier::BOLD),
-    //         )
-    //         .highlight_symbol("> ");
-
-    // f.render_stateful_widget(todo_cards, chunk[0], &mut app.lanes[0].state);
-    // f.render_stateful_widget(in_progress_cards, chunk[1], &mut app.lanes[1].state);
-    // f.render_stateful_widget(finished_cards, chunk[2], &mut app.lanes[2].state);
-    // f.render_stateful_widget(review_cards, chunk[3], &mut app.lanes[3].state);
 }
 
 fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
@@ -178,15 +159,9 @@ fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
 fn main() -> Result<(), Box<dyn Error>> {
     // Create the app and default lanes:
     let mut app = App::default();
-
-    // Creates the lanes, but this is a silly way off doing it.
-    let lane_names = vec!["TODO", "In Progress", "Finished", "Review"];
-    for _ in lane_names {
-        app.lanes.push(StatefulList::with_items(Vec::new()));
-    }
-
+    for _ in 0..4 { app.lanes.push(StatefulList::with_items(Vec::new())); }
+    // Listen for events:
     let events = Events::new();
-
     // The double stdout is what the actual documentation suggests
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
@@ -252,6 +227,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // Handle input
         if let Event::Input(input) = events.next().unwrap() {
+            let mut lane = 0;
             match app.input_mode {
                 InputMode::Normal => match input {
                     Key::Char('\n') => {
@@ -263,12 +239,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Key::Char('t') => { app.input_mode = InputMode::Title }, 
                     Key::Char('d') => { app.input_mode = InputMode::Description },
 
-                    Key::Up => {},
-                    Key::Down => {},
-                    Key::Left => {},
-                    Key::Right => {
-                        let lane = 0;
+                    Key::Up => { app.lanes[lane].previous(); },
+                    Key::Down => { app.lanes[lane].next(); },
+                    Key::Left => {
+                        if lane != 0 { lane -=1; }
                         app.lanes[lane].next();
+                    },
+                    Key::Right => {
+                        // Get the card that is currently selected:
+                        let current_index = app.lanes[lane]
+                            .state.selected().unwrap();
+                        let current_card = app.lanes[lane]
+                            .items[current_index].clone();
+                        // remove it from the list
+
+                        // add it to the list on the right
+                        app.lanes[lane+1].items.push(current_card);
                     },
 
                     // Display the help screen
