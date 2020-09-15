@@ -2,158 +2,30 @@ mod util;
 use util::{
     event::{ Event, Events },
     signal::StatefulList,
+    draw::{
+        App,
+        Card,
+        InputMode,
+        draw_help_text, 
+        draw_input_box, 
+        draw_lanes, 
+        draw_description
+    }
 };
 
 use std::{ error::Error, io };
 
 use termion::{
     event::Key,
-    // input::MouseTerminal,
     raw::IntoRawMode,
     screen::AlternateScreen
 };
 
 use tui::{
-    backend::{ TermionBackend, Backend },
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{ Color, Modifier, Style },
-    text::{ Span, Spans, Text },
-    widgets::{ Block, Borders, List, ListItem, Paragraph, },
-    Frame,
+    backend::TermionBackend,
+    layout::{ Constraint, Direction, Layout },
     Terminal,
 };
-
-#[derive(Clone)]
-struct App {
-    input: String,
-    input_mode: InputMode,
-    lanes: Vec<StatefulList<Card>>,
-    current_lane: usize,
-    cards: Vec<Card>,
-}
-impl Default for App {
-    fn default() -> App {
-        App {
-            input: String::new(),
-            input_mode: InputMode::Normal,
-            lanes: Vec::new(),
-            current_lane: 0,
-            cards: Vec::new(),
-        }
-    }
-}
-
-#[derive(Clone)]
-struct Card {
-    title: String,
-    description: String,
-    lane: u8,
-    priority: u8,
-}
-impl Default for Card {
-    fn default() -> Self {
-        Card {
-            title: String::new(),
-            description: String::new(),
-            lane: 0,
-            priority: 0,
-        }
-    }
-}
-
-#[derive(Clone)]
-enum InputMode {
-    Normal,
-    Title,
-    Description,
-}
-
-
-fn draw_help_text<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
-    where
-        B: Backend,
-{
-    let help_text = match app.input_mode {
-        InputMode::Normal => {
-            vec![ Span::raw("Press 'h' for HELP or 'q' to EXIT"), ]
-        },
-
-        InputMode::Title |
-        InputMode::Description => {
-            vec![ Span::raw("Press ESC to enter NORMAL mode"), ]
-        },
-    };
-
-    let help_message = Text::from(Spans::from(help_text));
-    let help_menu = Paragraph::new(help_message);
-    f.render_widget(help_menu, chunk);
-}
-
-fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
-    where
-        B: Backend,
-{
-    let title = match app.input_mode {
-        InputMode::Normal => { "Normal" },
-        InputMode::Title => { "Title" },
-        InputMode::Description => { "Description" },
-    };
-
-    let input_box = Paragraph::new(app.input.as_ref())
-        .block(Block::default()
-            // Should change based on mode
-            .title(title)
-            .borders(Borders::ALL)
-        );
-    f.render_widget(input_box, chunk)
-}
-
-fn draw_lanes<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &mut App)
-    where
-        B: Backend,
-{
-    for index in 0..app.lanes.len() {
-        let current_lane = app.lanes[index].items.clone();
-        let title = match index {
-            0 => { "Todo" },
-            1 => { "In Progress" },
-            2 => { "Finished" },
-            3 => { "In review" },
-            _ => { "How'd you get here?" },
-        };
-
-        let current_cards: Vec<ListItem> = current_lane
-            .iter()
-            .map(|card|{
-                let li = vec![Spans::from(card.title.as_ref())];
-                ListItem::new(li).style( Style::default())
-            })
-            .collect();
-
-        let current_cards = List::new(current_cards.as_ref())
-                .block(Block::default().borders(Borders::ALL)
-                    .title(title)
-                )
-                .highlight_style(Style::default()
-                    .bg(Color::DarkGray)
-                    .add_modifier(Modifier::BOLD),
-                )
-                .highlight_symbol("> ");
-
-    f.render_stateful_widget(current_cards, chunk[index], &mut app.lanes[index].state);
-    }
-}
-
-fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
-    where
-        B: Backend,
-{
-    let description = Paragraph::new("Description dummy data")
-        .block(Block::default()
-            .borders(Borders::ALL)
-        );
-    f.render_widget(description, chunk[0]);
-}
 
 // Not sure why Box<dyn Error>> instead of just io::Error??
 fn main() -> Result<(), Box<dyn Error>> {
@@ -167,7 +39,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-
 
     loop {
         terminal.draw(|f| {
@@ -236,34 +107,40 @@ fn main() -> Result<(), Box<dyn Error>> {
                         // for editing title / description
                     },
                     // Display the help screen
-                    Key::Char('h') => { },
+                    Key::Char('?') => { },
                     Key::Char('q') => { break; },
                     Key::Char('t') => { app.input_mode = InputMode::Title }, 
                     Key::Char('d') => { app.input_mode = InputMode::Description },
 
                     Key::Up => { app.lanes[app.current_lane].previous(); },
                     Key::Down => { app.lanes[app.current_lane].next(); },
+                    
                     Key::Left => {
-                        app.lanes[app.current_lane].unselect();
-                        app.current_lane -= 1;
-                        app.lanes[app.current_lane].next();
+                        if app.current_lane != 0 {
+                            app.lanes[app.current_lane].unselect();
+                            app.current_lane -= 1;
+                            app.lanes[app.current_lane].next();
+                        }
 
                     },
                     Key::Right => {
-                        app.lanes[app.current_lane].unselect();
-                        app.current_lane += 1;
-                        app.lanes[app.current_lane].next();
+                        if app.current_lane != 3 {
+                            app.lanes[app.current_lane].unselect();
+                            app.current_lane += 1;
+                            app.lanes[app.current_lane].next();
+                        }
                     },
-                    Key::Ctrl('l') => {
+                    
+                    Key::Ctrl(',') => {
                         if app.current_lane != 0 {
                             // Get the card that is currently selected:
                             let current_index = app.lanes[app.current_lane]
                                 .state.selected().unwrap();
-                            let current_card = app.lanes[app.current_lane]
-                                .items[current_index].clone();
+
+                            let current_card = app.get_current_card();
 
                             // Push the card to the previous lane:
-                            app.lanes[app.current_lane-1].items.push(current_card);
+                            app.lanes[app.current_lane-1].items.push(current_card.unwrap());
                             // Unselect and Remove from the current lane:
                             app.lanes[app.current_lane].unselect();
                             app.lanes[app.current_lane].items.remove(current_index);
@@ -273,7 +150,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             app.lanes[app.current_lane].next();
                         }
                     },
-                    Key::Ctrl('r') => {
+                    Key::Ctrl('.') => {
                         if app.current_lane != 3 {
                             // Get the card that is currently selected:
                             let current_index = app.lanes[app.current_lane]
@@ -282,7 +159,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 .items[current_index].clone();
 
                             // Push the card to the next lane:
-                            app.lanes[app.current_lane+1].items.push(current_card);
+                            app.lanes[app.current_lane+1].items.push(current_card.unwrap());
                             // Unselect and Remove from the current lane:
                             app.lanes[app.current_lane].unselect();
                             app.lanes[app.current_lane].items.remove(current_index);
@@ -305,7 +182,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             // Create the card
                             let new_card = Card {
                                 title: String::from(&app.input),
-                                description: String::new(),
+                                description: Vec::new(),
                                 lane: 0,
                                 priority: 0,
                             };
@@ -322,9 +199,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 InputMode::Description => match input {
                     Key::Char('\n') => {
-                        let mut card = app.lanes[0].items.pop().unwrap();
-                        card.description = String::from(&app.input);
-                        app.lanes[0].items.push(card);
+                        let mut current_card = app.get_current_card();
+                        current_card.description.push(String::from(&app.input));
+                        app.input = "".to_string();
                     },
                     Key::Esc => { app.input_mode = InputMode::Normal; },
                     Key::Char(c) => { app.input.push(c); },
