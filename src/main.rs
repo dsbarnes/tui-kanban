@@ -245,7 +245,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Key::Down => { app.lanes[app.current_lane].next(); },
                     Key::Left => { },
                     Key::Right => { },
-                    Key::Ctrl('l') => { },
+                    Key::Ctrl('l') => {
+                        if app.current_lane != 0 {
+                            // Get the card that is currently selected:
+                            let current_index = app.lanes[app.current_lane]
+                                .state.selected().unwrap();
+                            let current_card = app.lanes[app.current_lane]
+                                .items[current_index].clone();
+
+                            // Push the card to the previous lane:
+                            app.lanes[app.current_lane-1].items.push(current_card);
+                            // Unselect and Remove from the current lane:
+                            app.lanes[app.current_lane].unselect();
+                            app.lanes[app.current_lane].items.remove(current_index);
+                            // Switch to that lane:
+                            app.current_lane -= 1; 
+                            // Select the 'next' card in that lane
+                            app.lanes[app.current_lane].next();
+                        }
+                    },
                     Key::Ctrl('r') => {
                         if app.current_lane != 3 {
                             // Get the card that is currently selected:
