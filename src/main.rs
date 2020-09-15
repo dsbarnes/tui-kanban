@@ -243,8 +243,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     Key::Up => { app.lanes[app.current_lane].previous(); },
                     Key::Down => { app.lanes[app.current_lane].next(); },
-                    Key::Left => { },
-                    Key::Right => { },
+                    Key::Left => {
+                        app.lanes[app.current_lane].unselect();
+                        app.current_lane -= 1;
+                        app.lanes[app.current_lane].next();
+
+                    },
+                    Key::Right => {
+                        app.lanes[app.current_lane].unselect();
+                        app.current_lane += 1;
+                        app.lanes[app.current_lane].next();
+                    },
                     Key::Ctrl('l') => {
                         if app.current_lane != 0 {
                             // Get the card that is currently selected:
