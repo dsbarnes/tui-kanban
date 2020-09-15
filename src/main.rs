@@ -176,6 +176,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Key::Char('\n') => {
                         // Pressing enter in Title mode will switch to
                         // Description mode, unless app.input.len() < 7
+                        print!("{:?}", app.current_lane);
+
                         if app.input.len() > 6 {
                             // Create the card
                             let new_card = Card {
@@ -184,10 +186,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 lane: 0,
                                 priority: 0,
                             };
-                            app.lanes[0].items.push(new_card);
+                            app.lanes[app.current_lane].items.push(new_card);
                             app.input = "".to_string();
                             if let None = app.get_current_card(){
-                                app.lanes[0].state.select(Some(0));
+                                app.get_current_card();
                             }
                             app.input_mode = InputMode::Description;
                         }
