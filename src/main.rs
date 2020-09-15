@@ -28,6 +28,7 @@ struct App {
     input: String,
     input_mode: InputMode,
     lanes: Vec<StatefulList<Card>>,
+    current_lane: usize,
     cards: Vec<Card>,
 }
 impl Default for App {
@@ -36,6 +37,7 @@ impl Default for App {
             input: String::new(),
             input_mode: InputMode::Normal,
             lanes: Vec::new(),
+            current_lane: 0,
             cards: Vec::new(),
         }
     }
@@ -91,8 +93,6 @@ fn draw_input_box<B>(f: &mut Frame<B>, chunk: Rect, app: &App)
     where
         B: Backend,
 {
-    // Create a new paragraph with a value of app.input
-    // See 'handle input'
     let title = match app.input_mode {
         InputMode::Normal => { "Normal" },
         InputMode::Title => { "Title" },
@@ -168,6 +168,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+
     loop {
         terminal.draw(|f| {
             let main_layout = Layout::default()
@@ -227,38 +228,45 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // Handle input
         if let Event::Input(input) = events.next().unwrap() {
-            let mut lane = 0;
             match app.input_mode {
                 InputMode::Normal => match input {
+                    // Needs to be first:
                     Key::Char('\n') => {
                         // Select the current card
                         // for editing title / description
                     },
-
+                    // Display the help screen
+                    Key::Char('h') => { },
                     Key::Char('q') => { break; },
                     Key::Char('t') => { app.input_mode = InputMode::Title }, 
                     Key::Char('d') => { app.input_mode = InputMode::Description },
 
-                    Key::Up => { app.lanes[lane].previous(); },
-                    Key::Down => { app.lanes[lane].next(); },
-                    Key::Left => {
-                        if lane != 0 { lane -=1; }
-                        app.lanes[lane].next();
-                    },
-                    Key::Right => {
-                        // Get the card that is currently selected:
-                        let current_index = app.lanes[lane]
-                            .state.selected().unwrap();
-                        let current_card = app.lanes[lane]
-                            .items[current_index].clone();
-                        // remove it from the list
+                    Key::Up => { app.lanes[app.current_lane].previous(); },
+                    Key::Down => { app.lanes[app.current_lane].next(); },
+                    Key::Left => { },
+                    Key::Right => { },
+                    Key::Ctrl('l') => { },
+                    Key::Ctrl('r') => {
+                        if app.current_lane != 3 {
+                            // Get the card that is currently selected:
+                            let current_index = app.lanes[app.current_lane]
+                                .state.selected().unwrap();
+                            let current_card = app.lanes[app.current_lane]
+                                .items[current_index].clone();
 
-                        // add it to the list on the right
-                        app.lanes[lane+1].items.push(current_card);
+                            // Push the card to the next lane:
+                            app.lanes[app.current_lane+1].items.push(current_card);
+                            // Unselect and Remove from the current lane:
+                            app.lanes[app.current_lane].unselect();
+                            app.lanes[app.current_lane].items.remove(current_index);
+                            // Switch to that lane:
+                            app.current_lane += 1; 
+                            // Select the 'next' card in that lane
+                            app.lanes[app.current_lane].next();
+                        }
                     },
 
-                    // Display the help screen
-                    Key::Char('h') => { },
+
                     _ => { },
                 },
 
@@ -298,7 +306,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 },
             }
         }
-    }
+    } // loop
 
     Ok(())
 }
