@@ -137,17 +137,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                             let current_index = app.lanes[app.current_lane]
                                 .state.selected().unwrap();
 
-                            let current_card = app.get_current_card();
-
-                            // Push the card to the previous lane:
-                            app.lanes[app.current_lane-1].items.push(current_card.unwrap());
-                            // Unselect and Remove from the current lane:
-                            app.lanes[app.current_lane].unselect();
-                            app.lanes[app.current_lane].items.remove(current_index);
-                            // Switch to that lane:
-                            app.current_lane -= 1; 
-                            // Select the 'next' card in that lane
-                            app.lanes[app.current_lane].next();
+                            if let Some(current_card) = app.get_current_card(){
+                                // Push the card to the previous lane:
+                                app.lanes[app.current_lane-1].items.push(current_card);
+                                // Unselect and Remove from the current lane:
+                                app.lanes[app.current_lane].unselect();
+                                app.lanes[app.current_lane].items.remove(current_index);
+                                // Switch to that lane:
+                                app.current_lane -= 1; 
+                                // Select the 'next' card in that lane
+                                app.lanes[app.current_lane].next();
+                            }
                         }
                     },
                     Key::Ctrl('.') => {
@@ -155,22 +155,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                             // Get the card that is currently selected:
                             let current_index = app.lanes[app.current_lane]
                                 .state.selected().unwrap();
-                            let current_card = app.lanes[app.current_lane]
-                                .items[current_index].clone();
 
-                            // Push the card to the next lane:
-                            app.lanes[app.current_lane+1].items.push(current_card.unwrap());
-                            // Unselect and Remove from the current lane:
-                            app.lanes[app.current_lane].unselect();
-                            app.lanes[app.current_lane].items.remove(current_index);
-                            // Switch to that lane:
-                            app.current_lane += 1; 
-                            // Select the 'next' card in that lane
-                            app.lanes[app.current_lane].next();
+                            if let Some(current_card) = app.get_current_card(){
+                                // Push the card to the next lane:
+                                app.lanes[app.current_lane+1].items.push(current_card);
+                                // Unselect and Remove from the current lane:
+                                app.lanes[app.current_lane].unselect();
+                                app.lanes[app.current_lane].items.remove(current_index);
+                                // Switch to that lane:
+                                app.current_lane += 1; 
+                                // Select the 'next' card in that lane
+                                app.lanes[app.current_lane].next();
+                            }
                         }
                     },
-
-
                     _ => { },
                 },
 
@@ -188,6 +186,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             };
                             app.lanes[0].items.push(new_card);
                             app.input = "".to_string();
+                            if let None = app.get_current_card(){
+                                app.lanes[0].state.select(Some(0));
+                            }
                             app.input_mode = InputMode::Description;
                         }
                     },
@@ -199,9 +200,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 InputMode::Description => match input {
                     Key::Char('\n') => {
-                        let mut current_card = app.get_current_card();
-                        current_card.description.push(String::from(&app.input));
-                        app.input = "".to_string();
+                        if let Some(mut current_card) = app.get_current_card(){
+                            current_card.description.push(String::from(&app.input));
+                            app.input = "".to_string();
+                        }
                     },
                     Key::Esc => { app.input_mode = InputMode::Normal; },
                     Key::Char(c) => { app.input.push(c); },

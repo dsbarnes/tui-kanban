@@ -169,7 +169,7 @@ pub fn draw_description<B>(f: &mut Frame<B>, chunk: Vec<Rect>, app: &App)
     if let Some(card) = app.get_current_card() {
         let text = vec![
             Spans::from( vec![
-                Span::raw(card.description[0])
+                Span::raw(card.description[0].as_str())
             ]
         )];
 
